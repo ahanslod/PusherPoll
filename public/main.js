@@ -17,62 +17,77 @@ form.addEventListener('submit', e => {
   e.preventDefault();
 });
 
-// Canvas JS
-let dataPoints = [
-  {
-    label: 'Windows',
-    y: 0
-  },
-  {
-    label: 'MacOS',
-    y: 0
-  },
-  {
-    label: 'Linux',
-    y: 0
-  },
-  {
-    label: 'Other',
-    y: 0
-  }
-];
+fetch('http://localhost:3000/poll')
+  .then(res => res.json())
+  .then(data => {
+    const votes = data.votes;
+    const totalVotes = votes.length;
 
-const chartContainer = document.querySelector('#chartContainer');
-if (chartContainer) {
-  var chart = new CanvasJS.Chart('chartContainer', {
-    animationEnabled: true,
-    title: {
-      text: 'OS Poll'
-    },
-    data: [
+    // Count vote points - acc/curr values
+    const voteCounts = votes.reduce(
+      (acc, vote) => (
+        (acc[vote.os] = (acc[vote.os] || 0) + parseInt(vote.points)), acc
+      ),
+      {}
+    );
+
+    // Canvas JS
+    let dataPoints = [
       {
-        // Change type to "doughnut", "line", "splineArea", etc.
-        type: 'column',
-        dataPoints: dataPoints
+        label: 'Windows',
+        y: voteCounts.Windows
+      },
+      {
+        label: 'MacOS',
+        y: voteCounts.MacOS
+      },
+      {
+        label: 'Linux',
+        y: voteCounts.Linux
+      },
+      {
+        label: 'Other',
+        y: voteCounts.Other
       }
-    ]
-  });
-  chart.render();
+    ];
 
-  // Enable pusher logging - don't include this in production
-  Pusher.logToConsole = true;
+    const chartContainer = document.querySelector('#chartContainer');
+    if (chartContainer) {
+      var chart = new CanvasJS.Chart('chartContainer', {
+        animationEnabled: true,
+        title: {
+          text: `Total Votes ${totalVotes}`
+        },
+        data: [
+          {
+            // Change type to "doughnut", "line", "splineArea", etc.
+            type: 'column',
+            dataPoints: dataPoints
+          }
+        ]
+      });
+      chart.render();
 
-  var pusher = new Pusher('d09e7a04d86c900edb08', {
-    cluster: 'us2',
-    forceTLS: true
-  });
+      // Enable pusher logging - don't include this in production
+      Pusher.logToConsole = true;
 
-  var channel = pusher.subscribe('os-poll');
-  channel.bind('os-vote', function(data) {
-    dataPoints = dataPoints.map(x => {
-      if (x.label == data.os) {
-        x.y += data.points;
-        return x;
-      } else {
-        return x;
-      }
-    });
-    chart.render();
-    // alert(JSON.stringify(data));
+      var pusher = new Pusher('d09e7a04d86c900edb08', {
+        cluster: 'us2',
+        forceTLS: true
+      });
+
+      var channel = pusher.subscribe('os-poll');
+      channel.bind('os-vote', function(data) {
+        dataPoints = dataPoints.map(x => {
+          if (x.label == data.os) {
+            x.y += data.points;
+            return x;
+          } else {
+            return x;
+          }
+        });
+        chart.render();
+        // alert(JSON.stringify(data));
+      });
+    }
   });
-}

@@ -3,6 +3,9 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors'); // Cross domain functionality / authentication
 
+// DB config file
+require('./config/db');
+
 const app = express();
 
 const poll = require('./routes/poll');
